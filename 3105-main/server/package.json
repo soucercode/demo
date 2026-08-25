@@ -1,7 +1,0 @@
-{
-  "name": "proxy-shop-dhp-license-server",
-  "version": "1.0.0",
-  "private": true,
-  "description": "Simple license/key API and admin dashboard for Proxy SHOP DHP.",
-  "scripts": { "start": "node server.js" }
-}
