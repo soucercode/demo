@@ -1,59 +1,114 @@
-name: Build unsigned IPA
+name: Xây dựng IPA chưa ký
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
   build:
+    name: Build unsigned IPA
     runs-on: macos-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Select latest available Xcode
+      - name: Kiểm tra source
         run: |
-          LATEST=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -n1)
-          if [ -z "$LATEST" ]; then
-            LATEST="/Applications/Xcode.app"
+          echo "=== ROOT ==="
+          pwd
+          ls -la
+
+          echo "=== 3105-main ==="
+          ls -la "3105-main"
+
+          echo "=== XCODE PROJECT ==="
+          ls -la "3105-main/ThreeOneOSFive.xcodeproj"
+
+      - name: Chọn Xcode
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n 1)
+
+          if [ -z "$XCODE_PATH" ]; then
+            echo "Không tìm thấy Xcode."
+            exit 1
           fi
 
-          sudo xcode-select -s "$LATEST/Contents/Developer"
+          echo "Using: $XCODE_PATH"
+
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+
           xcodebuild -version
 
-      - name: Archive (unsigned)
+      - name: Kiểm tra Scheme
+        working-directory: 3105-main
         run: |
+          xcodebuild \
+            -project "ThreeOneOSFive.xcodeproj" \
+            -list
+
+      - name: Build Archive
+        working-directory: 3105-main
+        run: |
+          rm -rf "$RUNNER_TEMP/3105.xcarchive"
+
           xcodebuild archive \
-            -project ThreeOneOSFive.xcodeproj \
-            -scheme 3105 \
+            -project "ThreeOneOSFive.xcodeproj" \
+            -scheme "3105" \
             -configuration Release \
             -sdk iphoneos \
             -archivePath "$RUNNER_TEMP/3105.xcarchive" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGN_ENTITLEMENTS="" \
             DEVELOPMENT_TEAM=""
 
-      - name: Package IPA
+      - name: Kiểm tra APP
         run: |
           APP_PATH="$RUNNER_TEMP/3105.xcarchive/Products/Applications/3105.app"
-          PAYLOAD_DIR="$RUNNER_TEMP/Payload"
 
-          mkdir -p "$PAYLOAD_DIR"
-          cp -R "$APP_PATH" "$PAYLOAD_DIR/"
+          if [ ! -d "$APP_PATH" ]; then
+            echo "❌ Không tìm thấy 3105.app"
+            echo "=== ARCHIVE ==="
+            find "$RUNNER_TEMP/3105.xcarchive" -maxdepth 6 -print
+            exit 1
+          fi
+
+          echo "✅ APP đã build:"
+          ls -la "$APP_PATH"
+
+      - name: Đóng gói IPA
+        run: |
+          rm -rf "$RUNNER_TEMP/Payload"
+          mkdir -p "$RUNNER_TEMP/Payload"
+
+          cp -R \
+            "$RUNNER_TEMP/3105.xcarchive/Products/Applications/3105.app" \
+            "$RUNNER_TEMP/Payload/"
 
           cd "$RUNNER_TEMP"
-          zip -r -y 3105-unsigned.ipa Payload
 
-          mkdir -p "${{ github.workspace }}/out"
-          mv 3105-unsigned.ipa "${{ github.workspace }}/out/"
+          rm -f "ProxySHOPDHP-unsigned.ipa"
 
-      - name: Upload IPA artifact
+          zip -qry \
+            "ProxySHOPDHP-unsigned.ipa" \
+            Payload
+
+          mkdir -p "$GITHUB_WORKSPACE/out"
+
+          cp \
+            "ProxySHOPDHP-unsigned.ipa" \
+            "$GITHUB_WORKSPACE/out/ProxySHOPDHP-unsigned.ipa"
+
+          echo "✅ IPA:"
+          ls -lh "$GITHUB_WORKSPACE/out/ProxySHOPDHP-unsigned.ipa"
+
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
-          name: 3105-unsigned-ipa
-          path: out/3105-unsigned.ipa
+          name: ProxySHOPDHP-unsigned-IPA
+          path: out/ProxySHOPDHP-unsigned.ipa
+          if-no-files-found: error
           retention-days: 14
