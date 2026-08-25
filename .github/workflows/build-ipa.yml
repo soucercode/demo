@@ -1,1 +1,95 @@
 
+name: Build Proxy SHOP DHP IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build unsigned IPA
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+      - name: Check project
+        run: |
+          echo "=== Repository ==="
+          pwd
+
+          echo "=== Source directory ==="
+          ls -la "3105-main"
+
+          echo "=== Xcode project ==="
+          ls -la "3105-main/ThreeOneOSFive.xcodeproj"
+
+          echo "=== Available schemes ==="
+          xcodebuild \
+            -project "3105-main/ThreeOneOSFive.xcodeproj" \
+            -list
+
+      - name: Build archive
+        run: |
+          rm -rf "$RUNNER_TEMP/ProxySHOPDHP.xcarchive"
+
+          xcodebuild archive \
+            -project "3105-main/ThreeOneOSFive.xcodeproj" \
+            -scheme "3105" \
+            -configuration "Release" \
+            -sdk "iphoneos" \
+            -archivePath "$RUNNER_TEMP/ProxySHOPDHP.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Verify app
+        run: |
+          APP_PATH="$RUNNER_TEMP/ProxySHOPDHP.xcarchive/Products/Applications/3105.app"
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "ERROR: 3105.app was not created."
+            echo "Archive contents:"
+            find "$RUNNER_TEMP/ProxySHOPDHP.xcarchive" -maxdepth 5 -print
+            exit 1
+          fi
+
+          echo "App successfully created:"
+          ls -la "$APP_PATH"
+
+      - name: Create IPA
+        run: |
+          rm -rf "$RUNNER_TEMP/Payload"
+          mkdir -p "$RUNNER_TEMP/Payload"
+
+          cp -R \
+            "$RUNNER_TEMP/ProxySHOPDHP.xcarchive/Products/Applications/3105.app" \
+            "$RUNNER_TEMP/Payload/"
+
+          cd "$RUNNER_TEMP"
+
+          rm -f "ProxySHOPDHP-unsigned.ipa"
+
+          zip -qry \
+            "ProxySHOPDHP-unsigned.ipa" \
+            "Payload"
+
+          echo "IPA created:"
+          ls -lh "ProxySHOPDHP-unsigned.ipa"
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProxySHOPDHP-unsigned-IPA
+          path: ${{ runner.temp }}/ProxySHOPDHP-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
