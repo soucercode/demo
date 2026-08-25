@@ -58,8 +58,8 @@
 		3105A228 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3105A120; };
 		3105A211 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3105A031; };
 		3105D001 /* Aim Chest.3105 in Resources */ = {isa = PBXBuildFile; fileRef = 3105D000; };
-		3105D002 /* Chams Súng Green(1).3105 in Resources */ = {isa = PBXBuildFile; fileRef = 3105D002; };
-		3105D003 /* Magic.3105 in Resources */ = {isa = PBXBuildFile; fileRef = 3105D003; };
+		3105D102 /* Chams Súng Green(1).3105 in Resources */ = {isa = PBXBuildFile; fileRef = 3105D002; };
+		3105D103 /* Magic.3105 in Resources */ = {isa = PBXBuildFile; fileRef = 3105D003; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -326,8 +326,8 @@
 				3105A211,
 				3105A228,
 				3105D001,
-				3105D002,
-				3105D003,
+				3105D102,
+				3105D103,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
